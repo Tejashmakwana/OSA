@@ -1264,7 +1264,13 @@ func (m Model) handleHealth(h msg.HealthResult) (Model, tea.Cmd) {
 	var cmds []tea.Cmd
 	cmds = append(cmds, m.fetchCommands(), m.fetchToolCount())
 	cmds = append(cmds, tea.Tick(2*time.Second, func(time.Time) tea.Msg { return bannerTimeout{} }))
-	if m.program != nil {
+
+	// Auto-login when no token exists (local/Ollama usage).
+	// Login is unauthenticated; once it completes the LoginResult handler
+	// saves the token and starts SSE automatically.
+	if m.client.Token == "" {
+		cmds = append(cmds, m.doLogin("local"))
+	} else if m.program != nil {
 		if cmd := m.startSSE(); cmd != nil {
 			cmds = append(cmds, cmd)
 		}
